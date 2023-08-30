@@ -1,7 +1,8 @@
 #include <iostream>
 #include "Perceptron.h"
 
-// TODO: update the raw pointers use
+using namespace std;
+
 constexpr int DATA_SAMPLE_COUNT = 10;
 constexpr int NUMBER_OF_FEATURES = 2;
 
@@ -25,7 +26,7 @@ void PredictionDemo()
     for (int i = 0; i < DATA_SAMPLE_COUNT; i++)
     {
         short prediction = Perceptron::Predict(DATASET[i], weights, NUMBER_OF_FEATURES);
-        std::cout << "Expected=" << DATASET[i][NUMBER_OF_FEATURES] << "Predicted=" << prediction << "\n";
+        cout << "Expected=" << DATASET[i][NUMBER_OF_FEATURES] << "Predicted=" << prediction << endl;
     }
 }
 
@@ -35,17 +36,17 @@ void TrainingNetworkWeightsDemo()
     constexpr unsigned int NUMBER_OF_EPOCH = 5;
     const float* weights = Perceptron::TrainWeights((float*)DATASET, NUMBER_OF_FEATURES, DATA_SAMPLE_COUNT, LEARNING_RATE, NUMBER_OF_EPOCH, true);
 
-    std::cout << "[";
+    cout << "[";
     for (int i = 0; i < NUMBER_OF_FEATURES + 1; i++)
     {
-        std::cout << weights[i];
+        cout << weights[i];
         if (i == NUMBER_OF_FEATURES)
         {
-            std::cout << "]\n";
+            cout << "]" << endl;
         }
         else
         {
-            std::cout << ",";
+            cout << ",";
         }
     }
 }
@@ -60,27 +61,42 @@ void ModelPerceptronDemo()
 
     const float* scores = p.EvaluateScores((float*)DATASET, NUMBER_OF_FEATURES, DATA_SAMPLE_COUNT, N_FOLDS, LEARNING_RATE, NUMBER_OF_EPOCH);
 
-    std::cout << "Scores: [";
+    cout << "Scores: [";
     float mean = 0.f;
     for (int i = 0; i < N_FOLDS; i++)
     {
         mean += scores[i];
-        std::cout << scores[i];
-        if (i == N_FOLDS)
+        cout << scores[i];
+        if (i == N_FOLDS - 1)
         {
-            std::cout << "]\n";
+            cout << "]" << endl;
         }
         else
         {
-            std::cout << ",";
+            cout << ",";
         }
     }
-    std::cout << "Mean Accuracy: " << mean / (float)N_FOLDS;
+    cout << "Mean Accuracy: " << mean / (float)N_FOLDS << endl;
 }
 
 int main()
 {
-    PredictionDemo();
-    TrainingNetworkWeightsDemo();
+    /*cout << "Enter 1 to run PredictionDemo, 2 to run TrainingNetworkWeightsDemo or anything else to run ModelPerceptronDemo" << endl;
+    int input;
+    cin >> input;
+    
+    switch (input)
+    {
+        case 1:
+            PredictionDemo();
+            break;
+        case 2:
+            TrainingNetworkWeightsDemo();
+            break;
+        default:
+            ModelPerceptronDemo();
+            break;
+    }*/
     ModelPerceptronDemo();
+    exit(0);
 }
