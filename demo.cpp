@@ -33,7 +33,7 @@ void TrainingNetworkWeightsDemo()
 {
     constexpr float LEARNING_RATE = 0.1f;
     constexpr unsigned int NUMBER_OF_EPOCH = 5;
-    const float* weights = Perceptron::TrainWeights((float*)DATASET, NUMBER_OF_FEATURES, DATA_SAMPLE_COUNT, LEARNING_RATE, NUMBER_OF_EPOCH);
+    const float* weights = Perceptron::TrainWeights((float*)DATASET, NUMBER_OF_FEATURES, DATA_SAMPLE_COUNT, LEARNING_RATE, NUMBER_OF_EPOCH, true);
 
     std::cout << "[";
     for (int i = 0; i < NUMBER_OF_FEATURES + 1; i++)
@@ -52,7 +52,30 @@ void TrainingNetworkWeightsDemo()
 
 void ModelPerceptronDemo()
 {
+    constexpr unsigned int N_FOLDS = 3;
+    constexpr float LEARNING_RATE = 0.1f;
+    constexpr unsigned int NUMBER_OF_EPOCH = 500;
 
+    Perceptron p = Perceptron();
+
+    const float* scores = p.EvaluateScores((float*)DATASET, NUMBER_OF_FEATURES, DATA_SAMPLE_COUNT, N_FOLDS, LEARNING_RATE, NUMBER_OF_EPOCH);
+
+    std::cout << "Scores: [";
+    float mean = 0.f;
+    for (int i = 0; i < N_FOLDS; i++)
+    {
+        mean += scores[i];
+        std::cout << scores[i];
+        if (i == N_FOLDS)
+        {
+            std::cout << "]\n";
+        }
+        else
+        {
+            std::cout << ",";
+        }
+    }
+    std::cout << "Mean Accuracy: " << mean / (float)N_FOLDS;
 }
 
 int main()

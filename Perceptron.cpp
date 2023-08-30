@@ -15,7 +15,7 @@ const short Perceptron::Predict(const float* aData, const float* aWeights, const
 }
 
 // stochastic gradient descent
-const float* Perceptron::TrainWeights(const float* aTrainingData, const unsigned int aNumberOfFeatures, const unsigned int aNumberOfDataSamples, const float aLearningRate, const unsigned int aNumberOfEpochs)
+const float* Perceptron::TrainWeights(const float* aTrainingData, const unsigned int aNumberOfFeatures, const unsigned int aNumberOfDataSamples, const float aLearningRate, const unsigned int aNumberOfEpochs, bool isPrinting)
 {
     float* weights = (float*) malloc((aNumberOfFeatures + 1) * sizeof(float));
 
@@ -47,41 +47,49 @@ const float* Perceptron::TrainWeights(const float* aTrainingData, const unsigned
                 weights[k + 1] = weights[k + 1] + aLearningRate * error * aTrainingData[j * (aNumberOfFeatures + 1) + k];
             }
         }
-        std::cout << "epoch = " << i << ", lrate = " << aLearningRate << ", error = " << sumError << "\n";
+        if (isPrinting)
+        {
+            std::cout << "epoch = " << i << ", lrate = " << aLearningRate << ", error = " << sumError << "\n";
+        }
     }
 
     return weights;
 
 }
 
-std::vector<std::vector<float>> Perceptron::CrossValidationSplit(const float* aDataset, const unsigned int aNumberOfFeatures, const unsigned int aNumberOfDataSamples, const unsigned int aNumberOfFolds)
+const float* Perceptron::CrossValidationSplit(const float* aDataset, const unsigned int aNumberOfFeatures, const unsigned int aNumberOfDataSamples, const unsigned int aNumberOfFolds)
 {
-    std::vector<std::vector<float>> aDatasetSplit = std::vector<std::vector<float>>();
+    myFoldSize = aNumberOfDataSamples / aNumberOfFolds;
+    int totalNumberOfFoldEntries = (aNumberOfFeatures + 1) * myFoldSize * aNumberOfFolds;
+    float* datasetSplit = (float*)malloc(totalNumberOfFoldEntries * sizeof(float));
 
-    unsigned int foldSize = aNumberOfDataSamples / aNumberOfFolds;
-
+    int datasetSplitIndex = 0;
+    std::vector<int> indicies = std::vector<int>();
     for (int i = 0; i < aNumberOfFolds; i++)
     {
-        std::vector<float> fold = std::vector<float>();
-        while (fold.size() < foldSize)
+        while(indicies.size() < myFoldSize)
         {
             int index = rand() % aNumberOfDataSamples;
-            for (int i = 0; i < aNumberOfFeatures + 1; i++)
+            if (indicies.empty() || std::find(indicies.begin(), indicies.end(), index) == indicies.end())
             {
-                float data = aDataset[(index * (aNumberOfFeatures + 1)) + i];
-                fold.push_back(data);
+                indicies.push_back(index);
+                for (int i = 0; i < aNumberOfFeatures + 1; i++)
+                {
+                    float data = aDataset[(index * (aNumberOfFeatures + 1)) + i];
+                    datasetSplit[datasetSplitIndex] = data;
+                    datasetSplitIndex++;
+                }
             }
         }
-        aDatasetSplit.push_back(fold);
     }
     
-    return aDatasetSplit;
+    return datasetSplit;
 }
 
-const float Perceptron::AccuracyMetric(std::vector<float> actual, std::vector<float> predicted)
+const float Perceptron::AccuracyMetric(const float* actual, const float* predicted, const unsigned int aSize)
 {
     int correct = 0;
-    for (int i = 0; i < actual.size(); i++)
+    for (int i = 0; i < aSize; i++)
     {
         if (actual[i] == predicted[i])
         {
@@ -89,54 +97,75 @@ const float Perceptron::AccuracyMetric(std::vector<float> actual, std::vector<fl
         }
     }
 
-    return (correct / (float)actual.size()) * 100.f;
+    return (correct / (float)aSize) * 100.f;
 }
 
-std::vector<float> Perceptron::EvaluateScores(const float* aDataset, const unsigned int aNumberOfFeatures, const unsigned int aNumberOfDataSamples, const unsigned int aNumberOfFolds, std::vector<float>(*func)(const float* aTrainingData, const unsigned int aNumberOfFeatures, const unsigned int aNumberOfDataSamples, const float aLearningRate, const unsigned int aNumberOfEpochs))
+const float* Perceptron::EvaluateScores(const float* aDataset, const unsigned int aNumberOfFeatures, const unsigned int aNumberOfDataSamples, const unsigned int aNumberOfFolds, const float aLearningRate, const unsigned int aNumberOfEpochs)
 {
-//    std::vector<std::vector<float>> folds = CrossValidationSplit(aDataset, aNumberOfFeatures, aNumberOfDataSamples, aNumberOfFolds);
-//    std::vector<float> scores = std::vector<float>();
-//
-//    for (int i = folds.size() - 1; i >= 0; i--)
-//    {
-//        std::vector<std::vector<float>> trainSets = std::vector<std::vector<float>>(folds);
-//        if (i < folds.size() - 1)
-//        {
-//            std::swap(trainSets[i], trainSets[folds.size() - 1]);
-//        }
-//        trainSets.pop_back();
-//        // put each element into its own list
-//
-//        //trainSets.size() * trainSets[0].size()?
-//        float* test = (float*)malloc((aNumberOfFeatures + 1) * aNumberOfDataSamples * sizeof(float));
-//        for (int j = 0; j < trainSets.size(); j++)
-//        {
-//            for (int k = 0; k < trainSets[j].size(); k++)
-//            {
-//                test[j * trainSets[j].size() + k] = trainSets[j][k];
-//            }
-//        }
-//
-//        std::vector<float> test_set = std::vector<float>();
-//        for (float row : trainSets[i])
-//        {
-////            row_copy = list(row)
-//            std::vector<float> copy = std::vector<float>(row);
-//            test_set.append(row_copy)
-////            row_copy[-1] = None
-//        }
-//    }
+    const float* folds = CrossValidationSplit(aDataset, aNumberOfFeatures, aNumberOfDataSamples, aNumberOfFolds);   //3D
+    float* scores = (float*)malloc(aNumberOfFolds * sizeof(float));
+    float *trainSet, *testSet, *actual;
+
+    for (int i = 0; i < aNumberOfFolds; i++)
+    {
+        trainSet = (float*)malloc((aNumberOfFeatures + 1) * myFoldSize * (aNumberOfFolds - 1) * sizeof(float));
+        testSet = (float*)malloc((aNumberOfFeatures + 1) * myFoldSize * sizeof(float));
+        
+        // copy fold values into a new array, skipping the current one
+        for (int j = 0; j < aNumberOfFolds; j++)
+        {
+            bool skipped = false;
+            if (i != j)
+            {
+                int index = skipped ? j - 1 : j;
+                // copy entire fold ((aNumberOfFeatures + 1) * myFoldSize)
+                for(int k = 0; k < (aNumberOfFeatures + 1) * myFoldSize; k++)
+                {
+                    trainSet[j * (aNumberOfFeatures + 1) * myFoldSize + k] = folds[index * (aNumberOfFeatures + 1) * myFoldSize + k];
+                }
+            }
+            else
+            {
+                skipped = true;
+            }
+        }
+        
+        // copy current fold into testSet
+        for (int j = 0; j < (aNumberOfFeatures + 1) * myFoldSize; j++)
+        {
+            testSet[j] = folds[i * (aNumberOfFeatures + 1) * myFoldSize + j];
+        }
+
+        const float* predicted = Execute(trainSet, testSet, aNumberOfFolds, aNumberOfFeatures, aNumberOfDataSamples, aLearningRate, aNumberOfEpochs);
+        
+        // copy fold predicted values into actual
+        actual = (float*)malloc(myFoldSize * sizeof(float));
+        for (int j = 0; j < myFoldSize; j++)
+        {
+            actual[j] = folds[i * (aNumberOfFeatures + 1) * myFoldSize + (j * myFoldSize) + aNumberOfFeatures];
+        }
+
+        scores[i] = AccuracyMetric(actual, predicted, myFoldSize);
+    }
     
-    return std::vector<float>();
+    return scores;
 }
 
-//def evaluate_algorithm(dataset, algorithm, n_folds, *args) :
-//        for row in fold :
-//            row_copy = list(row)
-//            test_set.append(row_copy)
-//            row_copy[-1] = None
-//        predicted = algorithm(train_set, test_set, *args)
-//        actual = [row[-1] for row in fold]
-//        accuracy = accuracy_metric(actual, predicted)
-//        scores.append(accuracy)
-//    return scores
+const float* Perceptron::Execute(const float* aTrainingData, const float* aTestData, const unsigned int aNumberOfFolds, const unsigned int aNumberOfFeatures, const unsigned int aNumberOfDataSamples, const float aLearningRate, const unsigned int aNumberOfEpochs)
+{
+    float* predictions = (float*)malloc(aNumberOfFolds * sizeof(float));
+    const float* weights = Perceptron::TrainWeights(aTrainingData, aNumberOfFeatures, aNumberOfDataSamples, aLearningRate, aNumberOfEpochs);
+    float* testDataRow;
+
+    for (int i = 0; i < myFoldSize; i++)
+    {
+        testDataRow = (float*)malloc((aNumberOfFeatures + 1) * sizeof(float));
+        for (int j = 0; j < (aNumberOfFeatures + 1); j++)
+        {
+            testDataRow[j] = aTestData[i * (aNumberOfFeatures + 1) + j];
+        }
+        predictions[i] = Perceptron::Predict(testDataRow, weights, aNumberOfFeatures);
+    }
+
+    return predictions;
+}
