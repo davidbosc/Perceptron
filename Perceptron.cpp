@@ -47,10 +47,12 @@ const float* Perceptron::TrainWeights(const float* aTrainingData, const unsigned
             {
                 weights[k + 1] = weights[k + 1] + aLearningRate * error * aTrainingData[j * (aNumberOfFeatures + 1) + k];
             }
+
+            free(data);
         }
         if (isPrinting)
         {
-            std::cout << "epoch = " << i << ", lrate = " << aLearningRate << ", error = " << sumError << "\n";
+            std::cout << "epoch = " << i << ", lrate = " << aLearningRate << ", error = " << sumError << std::endl;
         }
     }
 
@@ -66,18 +68,15 @@ const float* Perceptron::CrossValidationSplit(const float* aDataset, const unsig
 
     int datasetSplitIndex = 0;
     srand(time(0));
-    std::vector<int> indiciesUsed = std::vector<int>();
-    indiciesUsed.push_back(rand() % aNumberOfDataSamples);
+    int indexToSkip = rand() % aNumberOfDataSamples;
 
-    while (indiciesUsed.size() < aNumberOfDataSamples)
+    for (int i = 0; i < aNumberOfDataSamples; i++)
     {
-        int index = rand() % aNumberOfDataSamples;
-        if (std::find(indiciesUsed.begin(), indiciesUsed.end(), index) == indiciesUsed.end())
+        if (i != indexToSkip)
         {
-            indiciesUsed.push_back(index);
-            for (int i = 0; i < aNumberOfFeatures + 1; i++)
+            for (int j = 0; j < aNumberOfFeatures + 1; j++)
             {
-                float data = aDataset[(index * (aNumberOfFeatures + 1)) + i];
+                float data = aDataset[(i * (aNumberOfFeatures + 1)) + j];
                 datasetSplit[datasetSplitIndex] = data;
                 datasetSplitIndex++;
             }
@@ -134,8 +133,6 @@ const float* Perceptron::EvaluateScores(const float* aDataset, const unsigned in
         // copy current fold into testSet
         for (int j = 0; j < (aNumberOfFeatures + 1) * myFoldSize; j++)
         {
-            //std::cout << trainSet[i * (aNumberOfFeatures + 1) * myFoldSize + j] << std::endl;
-
             testSet[j] = folds[i * (aNumberOfFeatures + 1) * myFoldSize + j];
         }
 
