@@ -49,6 +49,8 @@ void TrainingNetworkWeightsDemo()
             cout << ",";
         }
     }
+
+    free((void*)weights);
 }
 
 void ModelPerceptronDemo()
@@ -77,6 +79,8 @@ void ModelPerceptronDemo()
         }
     }
     cout << "Mean Accuracy: " << mean / (float)N_FOLDS << endl;
+
+    free((void*)scores);
 }
 
 int main()
