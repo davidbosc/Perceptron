@@ -1,5 +1,4 @@
 #pragma once
-#include <vector>
 
 // Based off the following: https://machinelearningmastery.com/implement-perceptron-algorithm-scratch-python/
 
